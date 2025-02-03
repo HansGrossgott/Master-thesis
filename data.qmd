@@ -1,0 +1,712 @@
+---
+title: "data"
+format: html
+editor: visual
+---
+
+## Quarto
+
+Quarto enables you to weave together content and executable code into a finished document. To learn more about Quarto see <https://quarto.org>.
+
+## Running Code
+
+When you click the **Render** button a document will be generated that includes both content and the output of embedded code. You can embed code like this:
+
+```{r}
+library(openxlsx)
+library(ggplot2)
+library(vegan)
+library(plyr)
+library(FD)
+library(lme4)
+library(MuMIn)
+library(glmmTMB)
+library(performance)
+library(bbmle)
+library(DHARMa)
+library(lmtest)
+library(ggeffects)
+library(emmeans)
+library(fitdistrplus)
+```
+
+You can add options to executable code like this
+
+```{r}
+data <- read.xlsx("data.xlsx",
+                  sheet = 1)
+str(data)
+data$Date <- convertToDateTime(data$Date)
+str(data)
+data$Plot_name <- as.factor(data$Plot_name)
+data$Plot_type <- as.factor(data$Plot_type)
+data$Location <- as.factor(data$Location)
+data$Location_Management <- as.factor(data$Location_Management)
+data$Management <- as.factor(data$Management)
+data$Location_Management_Plot_type <- as.factor(data$Location_Management_Plot_type)
+str(data)
+
+my_colors_veg <- list(
+  Plot_type = c("Control" = "firebrick",
+                "FWD" = "gold"),
+  Location = c("Etterwinden" = "blue",
+               "Marksuhl" = "green",
+               "Cursdorf" = "pink",
+               "Lauscha" = "orange"),
+  Management = c("Clear" = "lightblue",
+                 "High_stumps" = "lightgreen",
+                 "Snags" = "brown"),
+  month = c("May" = "green", 
+            "Jun" = "darkgreen",
+            "Jul" = "yellow",
+            "Aug" = "red")
+)
+
+my_theme_veg <- theme_bw() + theme(
+  panel.background = element_rect(fill = "white"),
+  plot.background = element_rect(fill = "white"),
+  panel.grid.major = element_blank(),
+  panel.grid.minor = element_blank(),
+  axis.line = element_line(color = "black", linewidth = 0.5),
+  legend.position = "bottom") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  theme(plot.title = element_text(face = "bold", hjust = 0.5)
+        )
+
+save_plot <- function(filename) {
+  if (!dir.exists("Figures")) {
+    dir.create("Figures")
+  }
+  
+  png(file.path("Figures", filename),
+      width = 15,
+      height = 10,
+      units = "cm",
+      res = 300)
+}
+
+save_plot("Tot_cov ~ Plot_type.png")
+ggplot(data = data, aes(x = Plot_type, y = Tot_cov, fill = Plot_type)) +
+  geom_boxplot() +
+  labs(y = "Total coverage") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  scale_fill_manual(values = my_colors_veg$Plot_type) +
+  my_theme_veg
+dev.off()
+
+save_plot("Spe_ric ~ Plot_type.png")
+ggplot(data = data, aes(x = Plot_type, y = Spe_ric, fill = Plot_type)) +
+  geom_boxplot() +
+  labs(y = "Species richness") +
+  scale_fill_manual(values = my_colors_veg$Plot_type) +
+  my_theme_veg
+dev.off()
+
+save_plot("Total cover ~ Location.png")
+ggplot(data = data, aes(x = Location, y = Tot_cov, fill = Location)) +
+  geom_boxplot() +
+  labs(y = "Total coverage [%]") +
+  scale_fill_manual(values = my_colors_veg$Location) +
+  my_theme_veg
+dev.off()
+
+save_plot("Species richness ~ Location.png")
+ggplot(data = data, aes(x = Location, y = Spe_ric, fill = Location)) +
+  geom_boxplot() +
+  labs(y = "Species richness") +
+  scale_fill_manual(values = my_colors_veg$Location) +
+  my_theme_veg
+dev.off()
+
+save_plot("Total cover ~ Location_Management.png")
+ggplot(data = data, aes(x = Location_Management, y = Tot_cov, fill = Location)) +
+  geom_boxplot() +
+  labs(y = "Total coverage [%]") +
+  ggtitle("Total coverage for location and management") +
+  scale_fill_manual(values = my_colors_veg$Location) +
+  my_theme_veg
+dev.off()
+
+save_plot("Species richness ~ Location_Management.png")
+ggplot(data = data, aes(x = Location_Management, y = Spe_ric, fill = Location)) +
+  geom_boxplot() +
+  labs(y = "Species richness") +
+  ggtitle("Species richness for location and management") +
+  scale_fill_manual(values = my_colors_veg$Location) +
+  my_theme_veg
+dev.off()
+
+save_plot("Total cover ~ Location_Management_Plot_type.png")
+ggplot(data = data, aes(x = Location_Management_Plot_type, y = Tot_cov, fill = Location)) +
+  geom_boxplot() +
+  labs(y = "Total coverage") +
+  scale_fill_manual(values = my_colors_veg$Location) +
+  my_theme_veg
+dev.off()
+
+save_plot("Species richness ~ Location_Management_Plot_type.png")
+ggplot(data = data, aes(x = Location_Management_Plot_type, y = Spe_ric, fill = Location)) +
+  geom_boxplot() +
+  labs(y = "Species richness") +
+  scale_fill_manual(values = my_colors_veg$Location) +
+  my_theme_veg
+dev.off()
+
+save_plot("Total cover ~ Location_Plot_type.png")
+ggplot(data = data, aes(x = Location_Plot_type, y = Tot_cov, fill = Location)) +
+  geom_boxplot() +
+  labs(y = "Total coverage") +
+  ggtitle("Total coverage by location and plot type") +
+  scale_fill_manual(values = my_colors_veg$Location) +
+  my_theme_veg
+dev.off()
+
+save_plot("Species richness ~ Location_Plot_type.png")
+ggplot(data = data, aes(x = Location_Plot_type, y = Spe_ric, fill = Location)) +
+  geom_boxplot() +
+  labs(y = "Species richness") +
+  ggtitle("Species richness by location and plot type") +
+  scale_fill_manual(values = my_colors_veg$Location) +
+  my_theme_veg
+dev.off()
+
+save_plot("Species richness ~ Management.png")
+ggplot(data = data, aes(x = Management, y = Spe_ric, fill = Management)) +
+  geom_boxplot() +
+  labs(y = "Species richness") +
+  ggtitle("Species richness by Management") +
+  scale_fill_manual(values = my_colors_veg$Management) +
+  my_theme_veg
+dev.off()
+
+plot(Tot_cov ~ Location, data = data)
+plot(Spe_ric ~ Location, data = data)
+plot(Tot_cov ~ Location_Management, data = data)
+plot(Spe_ric ~ Location_Management, data = data)
+plot(Tot_cov ~ Location_Management_Plot_type, data = data)
+plot(Spe_ric ~ Location_Management_Plot_type, data = data)
+```
+
+### Total cover analysis
+
+```{r}
+
+hist(data$Tot_cov)
+
+epsilon <- 0.0001  # Small adjustment value
+data$Tot_cov_beta <- data$Tot_cov / 100  # Scale to (0, 1)
+
+# Replace exact 0 and 1
+data$Tot_cov_beta[data$Tot_cov_beta == 0] <- epsilon
+data$Tot_cov_beta[data$Tot_cov_beta == 1] <- 1 - epsilon
+
+model_coverage <- glmmTMB(Tot_cov_beta ~ Plot_type * 
+                            Management + 
+                            (1 | Location), 
+                          family = beta_family(), 
+                          data = data, 
+                          REML = FALSE)
+summary(model_coverage)
+model_coverage_red <- glmmTMB(Tot_cov_beta ~ Plot_type + 
+                                Management + 
+                                (1|Location), 
+                              data = data, 
+                              REML = FALSE)
+summary(model_coverage_red)
+model_coverage_m_red <- glmmTMB(Tot_cov_beta ~ Plot_type + 
+                                  (1|Location), 
+                                data = data, 
+                                REML = FALSE)
+summary(model_coverage_m_red)
+MuMIn::AICc(model_coverage, model_coverage_red, model_coverage_m_red)
+# full model with lowest AICc value
+AICtab(model_coverage, model_coverage_red, model_coverage_m_red)
+
+anova(model_coverage, model_coverage_red, test = "Chisq")
+# full model prefered
+
+plot(residuals(model_coverage))
+hist(residuals(model_coverage))
+ggplot(data.frame(residuals = residuals(model_coverage)), aes(sample = residuals)) +
+  stat_qq() +
+  stat_qq_line() +
+  theme_minimal() +
+  labs(title = "Q-Q Plot of Residuals", x = "Theoretical Quantiles", y = "Sample Quantiles")
+
+check_model(model_coverage)
+
+summary(model_coverage)
+
+###_________________________ final model coverage ________________________###
+model_coverage_final <- glmmTMB(Tot_cov_beta ~ Plot_type * 
+                            Management + 
+                            (1 | Location), 
+                          family = beta_family(), 
+                          data = data, 
+                          REML = TRUE)
+check_model(model_coverage_final)
+summary(model_coverage_final)
+
+performance::check_overdispersion(model_coverage_final)
+# no overdispersion
+
+drop1(model_coverage_final)
+# Interaction Plot_type:Management deleted from model? But, anova result indicates significant difference
+
+bptest(model_coverage_final)
+# slight heteroscedasticity present! p < 0.05 -> remodel with different variances for Plot_type?
+
+plot(fitted(model_coverage), residuals(model_coverage, type = "pearson"), 
+     xlab = "Fitted values", ylab = "Pearson residuals")
+abline(h = 0, lty = 2)
+# heteroscedasticity?
+
+###__________________________dispersion_model____________________________###
+
+model_coverage_alt <- glmmTMB(Tot_cov_beta ~ Plot_type * 
+                            Management + 
+                            (1 | Location), 
+                          family = beta_family(), 
+                          disp = ~Plot_type, 
+                          data = data, 
+                          REML = FALSE)
+check_model(model_coverage_alt)
+summary(model_coverage_alt)
+
+MuMIn::AICc(model_coverage_final, 
+            model_coverage_alt)
+# AICc-value lower for alternative model!
+
+model_coverage_alt_red <- glmmTMB(Tot_cov_beta ~ Plot_type + 
+                            Management + 
+                            (1 | Location), 
+                          family = beta_family(), 
+                          disp = ~Plot_type, 
+                          data = data, 
+                          REML = FALSE)
+check_model(model_coverage_alt_red)
+summary(model_coverage_alt_red)
+
+MuMIn::AICc(model_coverage_alt, 
+            model_coverage_alt_red)
+anova(model_coverage_alt, 
+      model_coverage_alt_red, 
+      test = "Chisq")
+# model_coverage_alt_red prefered
+
+model_coverage_alt_final <- glmmTMB(Tot_cov_beta ~ Plot_type + 
+                            Management + 
+                            (1 | Location), 
+                          family = beta_family(), 
+                          disp = ~Plot_type, 
+                          data = data, 
+                          REML = TRUE)
+summary(model_coverage_alt_final)
+
+MuMIn::AICc(model_coverage_final, 
+            model_coverage_alt_final)
+# model_coverage_alt_final prefered
+
+# calculate R^2 of final model
+MuMIn::r.squaredGLMM(model_coverage_alt_final)
+# effects of dispersion model ignored! High R^2 values!
+
+```
+
+### Species richness analysis
+
+```{r}
+
+###_________________________lmer_Spe_ric________________________________###
+
+model_spe_ric <- lmer(Spe_ric ~ Plot_type * 
+                        Management + 
+                        (1 | Location), 
+                      data = data, 
+                      REML = FALSE)
+check_model(model_spe_ric)
+
+model_spe_ric_red <- lmer(Spe_ric ~ Plot_type + 
+                            Management + 
+                            (1 | Location),
+                          data = data, 
+                          REML = FALSE)
+check_model(model_spe_ric_red)
+
+model_spe_ric_m_red <- lmer(Spe_ric ~ Plot_type + (1 | Location),
+                            data = data)
+check_model(model_spe_ric_m_red)
+
+model_spe_ric_man <- lmer(Spe_ric ~ Management + 
+                            (1 | Location), 
+                          data = data, 
+                          REML = FALSE)
+check_model(model_spe_ric_man)
+
+MuMIn::AICc(model_spe_ric, 
+            model_spe_ric_red, 
+            model_spe_ric_m_red, 
+            model_spe_ric_man)
+AICctab(model_spe_ric, 
+        model_spe_ric_red, 
+        model_spe_ric_m_red, 
+        model_spe_ric_man)
+# full model prefered
+
+summary(model_spe_ric)
+
+MuMIn::r.squaredGLMM(model_spe_ric)
+# low R^2-value
+
+
+###____________________lmer_Spe_ric_Plot_type_Loc____________________________###
+
+model_spe_ric_loc <- lmer(Spe_ric ~ Plot_type * 
+                            Location + 
+                            (1 | Management),
+                          data = data, 
+                          REML = FALSE)
+check_model(model_spe_ric_loc)
+# high collinearity of Plot_type and Location! Management with variance = 0, delete random effect? -> lm instead of lmer without random effect?
+
+###_____________________________lm_Spe_ric_Plot_type_Loc____________________###
+
+model_spe_ric_loc_lm <- lm(Spe_ric ~ Plot_type * 
+                            Location,
+                           data = data)
+summary(model_spe_ric_loc_lm)
+check_model(model_spe_ric_loc_lm)
+# high collinearity, reduce model
+
+model_spe_ric_loc_lm_red <- lm(Spe_ric ~ Plot_type + 
+                                 Location, 
+                               data = data)
+summary(model_spe_ric_loc_lm_red)
+check_model(model_spe_ric_loc_lm_red)
+
+model_spe_ric_loc_lm_m_red <- lm(Spe_ric ~ Location,
+                                 data = data)
+summary(model_spe_ric_loc_lm_m_red)
+check_model(model_spe_ric_loc_lm_m_red)
+
+MuMIn::AICc(model_spe_ric_loc_lm, 
+            model_spe_ric_loc_lm_red, 
+            model_spe_ric_loc_lm_m_red)
+
+AICctab(model_spe_ric_loc_lm, 
+        model_spe_ric_loc_lm_red, 
+        model_spe_ric_loc_lm_m_red)
+
+anova(model_spe_ric_loc_lm_red, 
+      model_spe_ric_loc_lm_m_red)
+# reduced model with Plot_type + Location prefered
+
+model_spe_ric_loc_final <- lm(Spe_ric ~ Plot_type + 
+                                Location, 
+                              data = data)
+
+###___________________lmer_Spe_ric_Loc_Man___________________________###
+
+model_spe_ric_loc_man <- lmer(Spe_ric ~ Location * 
+                                Management + 
+                                (1| Plot_type), 
+                              data = data)
+check_model(model_spe_ric_loc_man)
+# high colinearity -> reduce model
+summary(model_spe_ric_loc_man)
+# variance Plot_type = 0 -> lm without random effect?
+
+###______________________lm_Spe_ric_Loc_Man___________________________###
+
+model_spe_ric_loc_man <- lm(Spe_ric ~ Location * 
+                                Management, 
+                              data = data)
+check_model(model_spe_ric_loc_man)
+# high colinearity -> reduce model
+summary(model_spe_ric_loc_man)
+
+model_spe_ric_loc_man_red <- lm(Spe_ric ~ Location + 
+                                Management, 
+                              data = data)
+check_model(model_spe_ric_loc_man_red)
+summary(model_spe_ric_loc_man_red)
+# Management not significant, so model more reduced
+
+model_spe_ric_loc_man_m_red <- lm(Spe_ric ~ Location, 
+                              data = data)
+check_model(model_spe_ric_loc_man_m_red)
+summary(model_spe_ric_loc_man_m_red)
+
+MuMIn::AICc(model_spe_ric_loc_man,
+            model_spe_ric_loc_man_red,
+            model_spe_ric_loc_man_m_red)
+# reduced model prefered because of high colinearity in full model?
+
+AICctab(model_spe_ric_loc_man, 
+        model_spe_ric_loc_man_red, 
+        model_spe_ric_loc_man_m_red)
+
+anova(model_spe_ric_loc_man, 
+      model_spe_ric_loc_man_red)
+# significant differences between full and reduced model -> eventough reduced model prefered because of high colinearity in full model?
+
+model_spe_ric_loc_man_final <- lm(Spe_ric ~ Location + Management, data = data)
+
+###__________________________compare_final_models_for_Spe_ric____________###
+
+MuMIn::AICc(model_spe_ric, 
+            model_spe_ric_loc_final,
+            model_spe_ric_loc_man_final)
+anova(model_spe_ric, 
+      model_spe_ric_loc_final)
+anova(model_spe_ric, 
+      model_spe_ric_loc_man_final)
+anova(model_spe_ric_loc_final,
+      model_spe_ric_loc_man_final)
+summary(model_spe_ric_loc_final)
+summary(model_spe_ric_loc_man_final)
+
+MuMIn::r.squaredGLMM(model_spe_ric_loc_final)
+MuMIn::r.squaredGLMM(model_spe_ric_loc_man_final)
+# model_spe_ric_loc_final and model_spe_ric_loc_man_final quite similar, no significant differences
+# R^2 values low, model_spe_ric_loc_man_final slightly heigher
+```
+
+# Simpson index
+
+```{r}
+
+simpson <- read.xlsx("data.xlsx",
+                     sheet = 15)
+str(simpson)
+simpson$Plot_name <- as.factor(simpson$Plot_name)
+
+simpson_table <- diversity(simpson[-1], index = "simpson")
+plot(simpson_table)
+
+simpson_table <- as.data.frame(simpson_table)
+
+data_simp <- cbind(data, simpson_table)
+
+save_plot("Simpson_index ~ Plot_type.png")
+ggplot(data = data_simp, aes(x = Plot_type, y = simpson_table, fill = Plot_type)) +
+  geom_boxplot() +
+  labs(y = "Simpson index") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  scale_fill_manual(values = my_colors_veg$Plot_type) +
+  my_theme_veg
+dev.off()
+
+save_plot("Simpson_index ~ Location.png")
+ggplot(data = data_simp, aes(x = Location, y = simpson_table, fill = Location)) +
+  geom_boxplot() +
+  labs(y = "Simpson index") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  scale_fill_manual(values = my_colors_veg$Location) +
+  my_theme_veg
+dev.off()
+
+save_plot("Simpson_index ~ Management.png")
+ggplot(data = data_simp, aes(x = Management, y = simpson_table, fill = Management)) +
+  geom_boxplot() +
+  labs(y = "Simpson index") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  scale_fill_manual(values = my_colors_veg$Management) +
+  my_theme_veg
+dev.off()
+
+plot(simpson_table ~ Location, data = data_simp)
+plot(simpson_table ~ Management, data = data_simp)
+plot(simpson_table ~ Location_Management, data = data_simp)
+```
+
+### Simpson index analysis
+
+```{r}
+
+hist(data_simp$simpson_table)
+
+fit_norm  <- fitdist(data_simp$simpson_table, "norm")   # Normalverteilung
+fit_lnorm <- fitdist(data_simp$simpson_table, "lnorm")  # Log-Normalverteilung
+fit_gamma <- fitdist(data_simp$simpson_table, "gamma")  # Gamma-Verteilung
+fit_beta  <- fitdist(data_simp$simpson_table, "beta")   # Beta-Verteilung (nur für Werte 0–1)
+
+plot.legend <- c("Normal", "Log-Normal", "Gamma", "Beta")
+denscomp(list(fit_norm, fit_lnorm, fit_gamma, fit_beta), legendtext = plot.legend)
+
+gofstat(list(fit_norm, fit_lnorm, fit_gamma, fit_beta))
+
+model_simp <- glmmTMB(simpson_table ~ Plot_type * 
+                        Location + 
+                        (1 | Management), 
+                      family = beta_family(), 
+                      REML = FALSE, 
+                      data = data_simp)
+check_model(model_simp)
+
+model_simp_red <- glmmTMB(simpson_table ~ Plot_type + 
+                             Location + 
+                             (1 | Management), 
+                      family = beta_family(), 
+                      REML = FALSE, 
+                      data = data_simp)
+check_model(model_simp_red)
+```
+
+# Shannon index
+
+```{r}
+
+shannon_table <- diversity(simpson[-1], index = "shannon")
+plot(shannon_table)
+
+shannon_table <- as.data.frame(shannon_table)
+
+data_shan <- cbind(data, shannon_table)
+
+save_plot("Shannon_index ~ Plot_type.png")
+ggplot(data = data_shan, aes(x = Plot_type, y = shannon_table, fill = Plot_type)) +
+  geom_boxplot() +
+  labs(y = "Shannon index") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  scale_fill_manual(values = my_colors_veg$Plot_type) +
+  my_theme_veg
+dev.off()
+
+save_plot("Shannon index ~ Location.png")
+ggplot(data = data_shan, aes(x = Location, y = shannon_table, fill = Location)) +
+  geom_boxplot() +
+  labs(y = "Shannon index") +
+  scale_fill_manual(values = my_colors_veg$Location) +
+  my_theme_veg
+dev.off()
+
+plot(shannon_table ~ Location, data = data_shan)
+plot(shannon_table ~ Management, data = data_shan)
+plot(shannon_table ~ Location_Management, data = data_shan)
+```
+
+### Shannon index analysis
+
+```{r}
+
+
+```
+
+# CWM
+
+```{r}
+
+spxcomm.matrix <- read.xlsx("data.xlsx",
+                            sheet = 9)
+spxcomm.matrix$Species_name <- as.factor(spxcomm.matrix$Species_name)
+row.names(spxcomm.matrix) <- spxcomm.matrix[, 1]
+spxcomm.matrix <- spxcomm.matrix[, -1]
+
+spxtrait.matrix <- read.xlsx("data.xlsx",
+                             sheet = 12)
+spxtrait.matrix$Species_name <- as.factor(spxtrait.matrix$Species_name)
+rownames(spxtrait.matrix) <- spxtrait.matrix$Species_name
+
+# Entferne die Spalte Species_name
+spxtrait.matrix <- spxtrait.matrix[, !colnames(spxtrait.matrix) %in% "Species_name", drop = FALSE]
+
+# Überprüfe, ob das Objekt ein Dataframe ist
+class(spxtrait.matrix)  # Sollte "data.frame" zurückgeben
+
+CWM <- functcomp(spxtrait.matrix, t(spxcomm.matrix))
+
+data_CWM <- cbind(data, CWM)
+data_CWM[95, 80] <- 0
+
+save_plot("CWM ~ Plot_type.png")
+ggplot(data = data_CWM, aes(x = Plot_type, y = Mean_height, fill = Plot_type)) +
+  geom_boxplot() +
+  labs(y = "Community weighted mean") +
+  scale_fill_manual(values = my_colors_veg$Plot_type) +
+  my_theme_veg
+dev.off()
+
+plot(Mean_height ~ Location, data = data_CWM)
+plot(Mean_height ~ Management, data = data_CWM)
+plot(Mean_height ~ Location_Management, data = data_CWM)
+
+#________________________FWD CWM____________________#
+
+spxcomm.matrix_FWD <- read.xlsx("data.xlsx",
+                            sheet = 10)
+spxcomm.matrix_FWD$Species_name <- as.factor(spxcomm.matrix_FWD$Species_name)
+row.names(spxcomm.matrix_FWD) <- spxcomm.matrix_FWD[, 1]
+spxcomm.matrix_FWD <- spxcomm.matrix_FWD[, -1]
+
+spxtrait.matrix_FWD <- read.xlsx("data.xlsx",
+                             sheet = 13)
+spxtrait.matrix_FWD$Species_name <- as.factor(spxtrait.matrix_FWD$Species_name)
+rownames(spxtrait.matrix_FWD) <- spxtrait.matrix_FWD$Species_name
+
+# Entferne die Spalte Species_name
+spxtrait.matrix_FWD <- spxtrait.matrix_FWD[, !colnames(spxtrait.matrix_FWD) %in% "Species_name", drop = FALSE]
+
+# Überprüfe, ob das Objekt ein Dataframe ist
+class(spxtrait.matrix_FWD)  # Sollte "data.frame" zurückgeben
+
+CWM_FWD <- functcomp(spxtrait.matrix_FWD, t(spxcomm.matrix_FWD))
+
+#_________________________Plot_CWM________________________________#
+
+spxcomm.matrix_Plot <- read.xlsx("data.xlsx",
+                            sheet = 11)
+spxcomm.matrix_Plot$Species_name <- as.factor(spxcomm.matrix_Plot$Species_name)
+row.names(spxcomm.matrix_Plot) <- spxcomm.matrix_Plot[, 1]
+spxcomm.matrix_Plot <- spxcomm.matrix_Plot[, -1]
+
+spxtrait.matrix_Plot <- read.xlsx("data.xlsx",
+                             sheet = 14)
+spxtrait.matrix_Plot$Species_name <- as.factor(spxtrait.matrix_Plot$Species_name)
+rownames(spxtrait.matrix_Plot) <- spxtrait.matrix_Plot$Species_name
+
+# Entferne die Spalte Species_name
+spxtrait.matrix_Plot <- spxtrait.matrix_Plot[, !colnames(spxtrait.matrix_Plot) %in% "Species_name", drop = FALSE]
+
+# Überprüfe, ob das Objekt ein Dataframe ist
+class(spxtrait.matrix_Plot)  # Sollte "data.frame" zurückgeben
+
+CWM_Plot <- functcomp(spxtrait.matrix_Plot, t(spxcomm.matrix_Plot))
+
+CWM_FWD_Plot <- rbind(CWM_FWD, CWM_Plot)
+
+CWM_FWD_Plot$Plot_name <- rownames(CWM_FWD_Plot)
+CWM_FWD_Plot$Plot_name <- as.factor(CWM_FWD_Plot$Plot_name)
+
+data_CWM_FWD_Plot <- merge(data, CWM_FWD_Plot, by = "Plot_name", all = TRUE)
+
+save_plot("CWM_FWD_Plot ~ Plot_type.png")
+ggplot(data = data_CWM_FWD_Plot, aes(x = Plot_type, y = Mean_height, fill = Plot_type)) +
+  geom_boxplot() +
+  labs(y = "Community weighted mean") +
+  ggtitle("Plant height by plot type") +
+  scale_fill_manual(values = my_colors_veg$Plot_type) +
+  my_theme_veg
+dev.off()
+
+plot(Mean_height ~ Location, data = data_CWM_FWD_Plot)
+plot(Mean_height ~ Location_Management, data = data_CWM_FWD_Plot)
+plot(Mean_height ~ Plot_name, data = data_CWM_FWD_Plot)
+data_CWM_FWD_Plot$Location_Plot_type <- as.factor(data_CWM_FWD_Plot$Location_Plot_type)
+plot(Mean_height ~ Location_Plot_type, data = data_CWM_FWD_Plot)
+
+save_plot("CWM ~ Location_Plot_type.png")
+ggplot(data = data_CWM_FWD_Plot, aes(x = Location_Plot_type, y = Mean_height, fill = Location)) +
+  geom_boxplot() +
+  labs(y = "Community weighted mean") +
+  ggtitle("Plant height by location and plot type") +
+  scale_fill_manual(values = my_colors_veg$Location) +
+  my_theme_veg
+dev.off()
+```
+
+## statistische Auswertung CWM
+
+```{r}
+
+```
